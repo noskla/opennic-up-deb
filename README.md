@@ -1,5 +1,13 @@
 # opennic-up
 
+---
+
+DEB Packages: https://github.com/noskla/opennic-up-deb/releases
+
+[![Build and Release DEB Package](https://github.com/noskla/opennic-up-deb/actions/workflows/build-release.yml/badge.svg)](https://github.com/noskla/opennic-up-deb/actions/workflows/build-release.yml) [![Sync Upstream](https://github.com/noskla/opennic-up-deb/actions/workflows/sync-upstream.yml/badge.svg)](https://github.com/noskla/opennic-up-deb/actions/workflows/sync-upstream.yml)
+
+---
+
 **OpenNIC auto DNS updater**
 
 ## Installation
