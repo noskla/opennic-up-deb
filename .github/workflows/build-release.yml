@@ -25,9 +25,13 @@ jobs:
           if [[ "${{ github.ref }}" == refs/tags/* ]]; then
             VERSION=${GITHUB_REF#refs/tags/v}
           else
-            # Extract version from opennic-up script
+            # Extract version from opennic-up script (output format: "opennic-up 1.2.4")
             chmod +x opennic-up
-            SCRIPT_VERSION=$(./opennic-up -v | awk '{print $2}')
+            SCRIPT_VERSION=$(./opennic-up -v 2>/dev/null | grep -oP '(?<=opennic-up )\S+')
+            if [ -z "$SCRIPT_VERSION" ]; then
+              # Fallback to awk if grep -P is not available
+              SCRIPT_VERSION=$(./opennic-up -v 2>/dev/null | awk '{print $2}')
+            fi
             VERSION="${SCRIPT_VERSION}+dev$(date +%Y%m%d.%H%M%S)"
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
