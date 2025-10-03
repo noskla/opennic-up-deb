@@ -10,7 +10,7 @@ NC='\033[0m' # No Color
 
 # Package metadata
 PACKAGE_NAME="opennic-up"
-VERSION="1.2.4"
+VERSION="dev-20251003-200505"
 ARCHITECTURE="amd64"
 MAINTAINER="kewlfft"
 DESCRIPTION="OpenNIC auto DNS updater"
