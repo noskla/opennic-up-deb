@@ -23,7 +23,7 @@ jobs:
           if [[ "${{ github.ref }}" == refs/tags/* ]]; then
             VERSION=${GITHUB_REF#refs/tags/v}
           else
-            VERSION="dev-$(date +%Y%m%d-%H%M%S)"
+            VERSION="0.0.0+dev$(date +%Y%m%d.%H%M%S)"
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
@@ -106,4 +106,3 @@ jobs:
             ${{ env.deb_file }}.sha256
             ${{ env.deb_file }}.md5
           retention-days: 30
-
