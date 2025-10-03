@@ -2,8 +2,8 @@ name: Build and Release DEB Package
 
 on:
   push:
-    tags:
-      - 'v*.*.*'  # Triggers on version tags like v1.0.0
+    branches:
+      - master  # Triggers on every commit to master
   workflow_dispatch:  # Allows manual trigger
 
 permissions:
@@ -62,17 +62,22 @@ jobs:
       - name: Create Release
         id: create_release
         uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
         with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('dev-{0}', steps.get_version.outputs.version) }}
+          name: ${{ startsWith(github.ref, 'refs/tags/') && format('Release {0}', github.ref_name) || format('Development Build {0}', steps.get_version.outputs.version) }}
           files: |
             ${{ env.deb_file }}
             ${{ env.deb_file }}.sha256
             ${{ env.deb_file }}.md5
           draft: false
-          prerelease: false
+          prerelease: ${{ !startsWith(github.ref, 'refs/tags/') }}
           generate_release_notes: true
           body: |
             ## OpenNIC Updater v${{ steps.get_version.outputs.version }}
+            
+            ${{ startsWith(github.ref, 'refs/tags/') && '### Official Release' || '### Development Build' }}
+            
+            ${{ !startsWith(github.ref, 'refs/tags/') && '⚠️ This is an automated development build from the master branch. Use official tagged releases for production.' || '' }}
             
             ### Installation
             
