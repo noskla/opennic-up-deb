@@ -1,0 +1,63 @@
+name: Sync Upstream
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'  # Runs at 00:00 UTC every Sunday (once a week)
+  workflow_dispatch:      # Allows manual triggering
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for accurate merging
+
+      - name: Sync with Upstream
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          # Add the upstream repository
+          git remote add upstream https://github.com/kewlfft/opennic-up
+
+          # Fetch the upstream changes
+          git fetch upstream
+
+          # Checkout your default branch (e.g., main)
+          git checkout main
+
+          # Check if there are any new commits in upstream
+          UPSTREAM_COMMITS=$(git rev-list HEAD..upstream/main --count)
+          
+          if [ "$UPSTREAM_COMMITS" -eq 0 ]; then
+            echo "No new commits from upstream. Skipping sync."
+            exit 0
+          fi
+
+          echo "Found $UPSTREAM_COMMITS new commit(s) from upstream. Proceeding with sync..."
+
+          # Configure git
+          git config --global user.name "noskla"
+          git config --global user.email "${{ secrets.GH_EMAIL }}"
+
+          # Create a new branch for the sync
+          BRANCH_NAME="sync-upstream-$(date +%Y%m%d-%H%M%S)"
+          git checkout -b "$BRANCH_NAME"
+
+          # Merge upstream changes into the new branch
+          git merge upstream/main
+
+          # Push the branch to your fork
+          git push https://${{ secrets.GH_TOKEN }}@github.com/noskla/opennic-up-deb "$BRANCH_NAME"
+
+          # Create a pull request using GitHub CLI
+          gh pr create \
+            --title "Sync with upstream $(date +%Y-%m-%d)" \
+            --body "This PR syncs the latest changes from the upstream repository (https://github.com/kewlfft/opennic-up).
+
+          **Changes:** $UPSTREAM_COMMITS new commit(s)
+
+          Please review the changes before merging." \
+            --base main \
+            --head "$BRANCH_NAME"
