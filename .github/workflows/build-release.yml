@@ -1,0 +1,109 @@
+name: Build and Release DEB Package
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Triggers on version tags like v1.0.0
+  workflow_dispatch:  # Allows manual trigger
+
+permissions:
+  contents: write  # Required for creating releases
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: get_version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+          else
+            VERSION="dev-$(date +%Y%m%d-%H%M%S)"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Update package version in build script
+        run: |
+          sed -i 's/^VERSION=".*"/VERSION="${{ steps.get_version.outputs.version }}"/' build-deb.sh
+
+      - name: Make build script executable
+        run: chmod +x build-deb.sh
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dpkg-dev
+
+      - name: Build DEB package
+        run: |
+          # Run the build script non-interactively
+          yes | ./build-deb.sh || true
+          
+          # Find the generated .deb file
+          DEB_FILE=$(ls *.deb 2>/dev/null | head -n 1)
+          if [ -z "$DEB_FILE" ]; then
+            echo "Error: No .deb file found!"
+            exit 1
+          fi
+          echo "deb_file=$DEB_FILE" >> $GITHUB_ENV
+          echo "Built package: $DEB_FILE"
+
+      - name: Generate checksums
+        run: |
+          sha256sum ${{ env.deb_file }} > ${{ env.deb_file }}.sha256
+          md5sum ${{ env.deb_file }} > ${{ env.deb_file }}.md5
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            ${{ env.deb_file }}
+            ${{ env.deb_file }}.sha256
+            ${{ env.deb_file }}.md5
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          body: |
+            ## OpenNIC Updater v${{ steps.get_version.outputs.version }}
+            
+            ### Installation
+            
+            Download the `.deb` package and install it:
+            
+            ```bash
+            sudo dpkg -i ${{ env.deb_file }}
+            ```
+            
+            ### Verify Installation
+            
+            Check the service status:
+            ```bash
+            systemctl status opennic-up.timer
+            systemctl status opennic-up.service
+            ```
+            
+            ### Checksums
+            
+            SHA256 and MD5 checksums are provided for verification.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: Upload artifacts (for workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: opennic-up-deb-package
+          path: |
+            ${{ env.deb_file }}
+            ${{ env.deb_file }}.sha256
+            ${{ env.deb_file }}.md5
+          retention-days: 30
+
