@@ -2,6 +2,8 @@ name: Build and Release DEB Package
 
 on:
   push:
+    tags:
+      - 'v*.*.*'  # Triggers on version tags like v1.0.0
     branches:
       - master  # Triggers on every commit to master
   workflow_dispatch:  # Allows manual trigger
@@ -17,13 +19,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Extract version from tag
+      - name: Extract version from tag or script
         id: get_version
         run: |
           if [[ "${{ github.ref }}" == refs/tags/* ]]; then
             VERSION=${GITHUB_REF#refs/tags/v}
           else
-            VERSION="0.0.0+dev$(date +%Y%m%d.%H%M%S)"
+            # Extract version from opennic-up script
+            chmod +x opennic-up
+            SCRIPT_VERSION=$(./opennic-up -v | awk '{print $2}')
+            VERSION="${SCRIPT_VERSION}+dev$(date +%Y%m%d.%H%M%S)"
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
