@@ -24,11 +24,11 @@ jobs:
           # Fetch the upstream changes
           git fetch upstream
 
-          # Checkout your default branch (e.g., main)
-          git checkout main
+          # Checkout your default branch (e.g., master)
+          git checkout master
 
           # Check if there are any new commits in upstream
-          UPSTREAM_COMMITS=$(git rev-list HEAD..upstream/main --count)
+          UPSTREAM_COMMITS=$(git rev-list HEAD..upstream/master --count)
           
           if [ "$UPSTREAM_COMMITS" -eq 0 ]; then
             echo "No new commits from upstream. Skipping sync."
@@ -46,7 +46,7 @@ jobs:
           git checkout -b "$BRANCH_NAME"
 
           # Merge upstream changes into the new branch
-          git merge upstream/main
+          git merge upstream/master
 
           # Push the branch to your fork
           git push https://${{ secrets.GH_TOKEN }}@github.com/noskla/opennic-up-deb "$BRANCH_NAME"
@@ -59,5 +59,5 @@ jobs:
           **Changes:** $UPSTREAM_COMMITS new commit(s)
 
           Please review the changes before merging." \
-            --base main \
+            --base master \
             --head "$BRANCH_NAME"
